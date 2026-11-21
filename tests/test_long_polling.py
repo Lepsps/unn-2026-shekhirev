@@ -45,9 +45,12 @@ class LongPollingTest(unittest.TestCase):
         update = {"update_id": 40}
         self.messenger.get_updates.side_effect = [[update], OSError("offline"), KeyboardInterrupt]
 
-        with patch("bot.long_polling.time.sleep") as sleep, self.assertLogs("bot.long_polling"):
-            with self.assertRaises(KeyboardInterrupt):
-                start_long_polling(self.dispatcher, self.messenger)
+        with (
+            patch("bot.long_polling.time.sleep") as sleep,
+            self.assertLogs("bot.long_polling"),
+            self.assertRaises(KeyboardInterrupt),
+        ):
+            start_long_polling(self.dispatcher, self.messenger)
 
         offsets = [
             request.kwargs["offset"] for request in self.messenger.get_updates.call_args_list
