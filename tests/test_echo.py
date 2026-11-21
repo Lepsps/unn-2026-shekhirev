@@ -8,6 +8,41 @@ from urllib.parse import parse_qs
 
 
 class EchoTest(unittest.TestCase):
+    def test_empty_poll_uses_telegram_base_url(self):
+        requests = []
+
+        def telegram(request, *, timeout):
+            self.assertEqual(timeout, 40)
+            requests.append(request)
+            if len(requests) == 2:
+                raise KeyboardInterrupt
+            return io.BytesIO(b'{"ok":true,"result":[]}')
+
+        with (
+            patch.dict(
+                os.environ,
+                {"TELEGRAM_BASE_URL": "http://telegram.invalid", "TELEGRAM_TOKEN": "test"},
+                clear=True,
+            ),
+            patch("urllib.request.urlopen", side_effect=telegram),
+            self.assertLogs("bot", level="INFO"),
+        ):
+            runpy.run_module("bot", run_name="__main__")
+
+        self.assertEqual(
+            [request.full_url for request in requests],
+            ["http://telegram.invalid/bottest/getUpdates"] * 2,
+        )
+        expected_params = {
+            "offset": ["0"],
+            "limit": ["10"],
+            "timeout": ["30"],
+            "allowed_updates": ['["message"]'],
+        }
+        for request in requests:
+            self.assertEqual(request.get_method(), "POST")
+            self.assertEqual(parse_qs(request.data.decode()), expected_params)
+
     def test_echoes_text_and_media_and_retries_only_failed_send(self):
         updates = [
             {"update_id": 41, "message": {"chat": {"id": 7}, "text": "Привет + &"}},
@@ -47,6 +82,7 @@ class EchoTest(unittest.TestCase):
             patch.dict(
                 os.environ,
                 {"BASE_URL": "https://telegram.invalid", "TELEGRAM_TOKEN": "test"},
+                clear=True,
             ),
             patch("urllib.request.urlopen", side_effect=telegram),
             patch("time.sleep") as sleep,

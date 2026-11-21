@@ -7,8 +7,10 @@
 Нужен Python 3.14 или новее. Задайте `TELEGRAM_TOKEN` в окружении и выполните команду из корня репозитория.
 
 ```sh
-BASE_URL=https://api.telegram.org python3 -m bot
+TELEGRAM_BASE_URL=https://api.telegram.org python3 -m bot
 ```
+
+Поддерживается и прежнее имя `BASE_URL`.
 
 ## Структура
 
@@ -34,5 +36,5 @@ GitHub Actions собирает Docker-образ и запускает пров
 
 ```sh
 make build
-docker run --rm -e TELEGRAM_TOKEN -e BASE_URL=https://api.telegram.org echo-bot
+docker run --rm -e TELEGRAM_TOKEN -e TELEGRAM_BASE_URL=https://api.telegram.org echo-bot
 ```

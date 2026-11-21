@@ -13,7 +13,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     messenger = TelegramMessenger(
         token=os.environ["TELEGRAM_TOKEN"],
-        base_url=os.environ["BASE_URL"],
+        base_url=os.environ.get("TELEGRAM_BASE_URL") or os.environ["BASE_URL"],
     )
     dispatcher = Dispatcher(messenger)
     dispatcher.add_handlers(*get_handlers())
