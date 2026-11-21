@@ -1,6 +1,14 @@
 name: Echo bot CI/CD
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish the image to GHCR
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,3 +37,32 @@ jobs:
           python-version: "3.14"
           enable-cache: false
       - run: uv run --locked make check
+
+  publish:
+    needs: test
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.publish_image &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Docker image
+        shell: bash
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --tag "$image:$GITHUB_SHA" --tag "$image:latest" .
+          docker push "$image:$GITHUB_SHA"
+          docker push "$image:latest"
